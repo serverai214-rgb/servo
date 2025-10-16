@@ -1,5 +1,5 @@
 // backend/keyManager.js
-import { API_KEYS } from "./apiKeys.js";
+import { API_KEYS } from "./apiKey";
 
 const usageStats = new Map(API_KEYS.map((k) => [k, { used: 0, cooldown: false }]));
 const requestQueue = [];
