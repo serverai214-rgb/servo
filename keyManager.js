@@ -1,5 +1,14 @@
 // backend/keyManager.js
-import { API_KEYS } from "./apiKey";
+import { API_KEYS } from "./apiKeys";
+
+// Load API keys from environment variables
+export const API_KEYS = Object.entries(process.env)
+  .filter(([k]) => k.startsWith("API_KEY_"))
+  .map(([_, v]) => v.trim());
+
+if (API_KEYS.length === 0) {
+  console.error("❌ No API keys found! Make sure they are set in Render environment variables.");
+}
 
 const usageStats = new Map(API_KEYS.map((k) => [k, { used: 0, cooldown: false }]));
 const requestQueue = [];
