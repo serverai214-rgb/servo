@@ -1,47 +1,45 @@
 import express from "express";
 import cors from "cors";
-import { getBalancedKey, setKeyOnCooldown } from "./keyManager.js";
+import dotenv from "dotenv";
+import { connectDB } from "./db.js";
+import { API_KEYS } from "./keyManager.js";
+
+dotenv.config();
 
 const app = express();
-
-// ✅ CORS for frontend
 app.use(cors());
+app.use(express.json());
 
-// ✅ Limit incoming JSON payloads (safety)
-app.use(express.json({ limit: "5mb" }));
+// Connect to MongoDB
+connectDB();
 
-// ✅ Health check route
-app.get("/", (req, res) => {
-  res.send("🔥 Cal AI Backend Running ✅");
-});
+// Example route to show key rotation
+let keyIndex = 0;
+function getNextApiKey() {
+  const key = API_KEYS[keyIndex];
+  keyIndex = (keyIndex + 1) % API_KEYS.length;
+  return key;
+}
 
-// ✅ Get least-used API key
-app.get("/get-api-key", async (req, res) => {
+app.post("/analyze", async (req, res) => {
   try {
-    const key = await getBalancedKey();
-    if (!key) {
-      return res.status(503).json({ error: "No API keys available" });
-    }
-    res.json({ apiKey: key });
+    const apiKey = getNextApiKey();
+
+    res.json({
+      success: true,
+      using_key: apiKey,
+      message: "Analysis OK"
+    });
   } catch (err) {
-    console.error("❌ Error fetching API key:", err);
-    res.status(500).json({ error: "Error, please try again" });
+    res.status(500).json({
+      success: false,
+      error: "Analysis failed",
+      details: err.message
+    });
   }
 });
 
-// ✅ Put a key on cooldown manually
-app.post("/cooldown", (req, res) => {
-  try {
-    const { key } = req.body;
-    if (!key) return res.status(400).json({ error: "Missing key" });
-
-    setKeyOnCooldown(key);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Cooldown error:", err);
-    res.status(500).json({ error: "Error, please try again" });
-  }
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`🚀 Backend running on port ${PORT}`);
 });
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Backend running on port ${PORT}`));
